@@ -1,0 +1,22 @@
+services:
+  db_cache: Nette\Caching\Storages\FileStorage(%app_temp%)
+  db_connection: Nette\Database\Connection(%database.dsn%, %database.user%, %database.password%)
+  db_structure: Nette\Database\Structure(@db_connection, @db_cache)
+  db_conventions: Nette\Database\Conventions\DiscoveredConventions(@db_structure)
+  db_explorer: Nette\Database\Explorer(@db_connection, @db_structure, @db_conventions, @db_cache)
+  jsonapi_server: WellRESTed\Server
+  jsonapi_tuner: Directee\DataAccess\JsonApiEntrypointTuner(@db_explorer, @filter_parser)
+  jsonapi_handler: Directee\Entrypoint\JsonApi(@jsonapi_tuner)
+  filter_parser: Directee\FilterExpression\Parser(@filter_lexer)
+  filter_lexer: Directee\FilterExpression\Lexer
+
+  router:
+    create: @jsonapi_server::createRouter
+    setup:
+      - register('GET', '/', Directee\Entrypoint\FrontStub(%app_name%))
+      - register('GET', '/{resource}', @jsonapi_handler)
+      - register('GET', '/{resource}/{id}', @jsonapi_handler)
+      - register('GET', '/{resource}/{id}/', @jsonapi_handler)
+
+parameters:
+  app_name: 'Directee is the common JSONAPI backend'
