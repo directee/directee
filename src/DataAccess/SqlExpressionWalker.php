@@ -2,7 +2,7 @@
 
 namespace Directee\DataAccess;
 
-use Nette\Database\Connection;
+use Doctrine\DBAL\Connection;
 use Directee\FilterExpression\TreeWalker;
 use Directee\FilterExpression\AST\EqualsExpression;
 use Directee\FilterExpression\AST\LessThanExpression;
@@ -81,19 +81,19 @@ class SqlExpressionWalker implements TreeWalker
 
     public function walkStartsWithExpression(StartsWithExpression $node)
     {
-        $expr = $this->builder->literal($node->value . '%');
+        $expr = $this->connection->quote($node->value . '%');
         return $this->expr($node->field->accept($this), 'LIKE', $expr);
     }
 
     public function walkEndsWithExpression(EndsWithExpression $node)
     {
-        $expr = $this->builder->literal('%' . $node->value);
+        $expr = $this->connection->quote('%' . $node->value);
         return $this->expr($node->field->accept($this), 'LIKE', $expr);
     }
 
     public function walkContainsExpression(ContainsExpression $node)
     {
-        $expr = $this->builder->literal('%' . $node->value . '%');
+        $expr = $this->connection->quote('%' . $node->value . '%');
         return $this->expr($node->field->accept($this), 'LIKE', $expr);
     }
 

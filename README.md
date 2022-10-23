@@ -14,7 +14,7 @@ Use composer
 
 ### 2) Tune
 
-Fill the config file `config/application.neon` with database connection information
+Fill the config file `directee-settings.php` with database connection url
 
 ### 3) Run
 
@@ -26,9 +26,9 @@ You can use filter expressions (?filter=) to query records.
 
 ## On the shoulders of giants
 
+* doctrine/dbal
 * tobyz/json-api-server
-* nette/database
-* basemaster/wellrested
+* wellrested/wellrested
 
 ## Roadmap
 

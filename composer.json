@@ -26,9 +26,9 @@
 
    "require": {
         "wellrested/wellrested": "^5.1",
+        "doctrine/dbal": "^3.4",
         "doctrine/lexer": "^1.2",
-        "nette/database": "^3.1",
-        "nette/di": "^3.0",
+        "pimple/pimple": "^3.0",
         "psr/event-dispatcher": "^1.0",
         "psr/http-client": "^1.0",
         "psr/log": "*",

@@ -16,11 +16,11 @@ use Tobyz\JsonApiServer\Schema\Relationship;
  */
 class DataAdapter implements AdapterInterface
 {
-    private $model;
+    private $dataQuery;
 
-    public function __construct(DataModel $model)
+    public function __construct(DataQuery $dataQuery)
     {
-        $this->model = $model;
+        $this->dataQuery = $dataQuery;
     }
 
     public function query()
@@ -77,13 +77,12 @@ class DataAdapter implements AdapterInterface
 
     public function find($query, string $id)
     {
-        $this->model->find($id);
-        return $this->model;
+        return $this->dataQuery->find($id);
     }
 
     public function get($query): array
     {
-        return $this->model->query($query->query);
+        return $this->dataQuery->query($query->query);
     }
 
     public function count($query): int
@@ -118,7 +117,7 @@ class DataAdapter implements AdapterInterface
 
     public function model()
     {
-        return $this->model->newInstance();
+        return $this->dataQuery->newDataItem();
     }
 
     public function setId($model, string $id): void
@@ -151,15 +150,14 @@ class DataAdapter implements AdapterInterface
         $this->asModel($model)->delete();
     }
 
-    /** Получить корректное имя jsonapi-атрибута */
     private function getAttributeName(Attribute $attribute): string
     {
         return $attribute->getProperty() ?: $attribute->getName();
     }
 
-    private function asModel($model): DataModel
+    private function asModel($model): DataItem
     {
-        if ($model instanceof DataModel) {
+        if ($model instanceof DataItem) {
             return $model;
         } else {
             throw new \RuntimeException('Invalid model instance');

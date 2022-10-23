@@ -7,21 +7,18 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\JsonApi as JsonApiServer;
 use Directee\DataAccess\JsonApiEntrypointTuner;
-use Nette\Database\Explorer;
 
 /**
- *  Обработчик запросов к ресурсам по JSONAPI
+ *
  */
 class JsonApi implements RequestHandlerInterface
 {
 
     private $jsonapi_tuner;
-    private $explorer;
 
-    public function __construct(JsonApiEntrypointTuner $jsonapi_tuner,  Explorer $explorer)
+    public function __construct(JsonApiEntrypointTuner $jsonapi_tuner)
     {
         $this->jsonapi_tuner = $jsonapi_tuner;
-        $this->explorer = $explorer;
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface

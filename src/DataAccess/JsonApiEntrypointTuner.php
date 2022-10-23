@@ -4,33 +4,32 @@ namespace Directee\DataAccess;
 
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
-use Nette\Database\Explorer;
+use Doctrine\DBAL\Connection;
 use Directee\FilterExpression\Parser;
 
 class JsonApiEntrypointTuner
 {
 
-    private $explorer;
+    private $db;
+    private $schema;
     private $parser;
 
-    public function __construct(Explorer $explorer, Parser $parser)
+    public function __construct(Connection $connection, Parser $parser)
     {
-        $this->explorer = $explorer;
+        $this->db = $connection;
+        $this->schema = $connection->createSchemaManager();
         $this->parser = $parser;
     }
 
     public function tuneJsonApi(string $resource, JsonApi $api): void
     {
-        $primaryKey = $this->explorer->getStructure()->getPrimaryKey($resource);
-        if (is_null($primaryKey)) {
-            throw new \RuntimeException("Invalid resource $primaryKey");
-        }
-        $model = new DataModel($resource, $this->explorer, $this->parser);
-        $fieldlist = $this->explorer->getStructure()->getColumns($resource);
-        $api->resourceType($resource, new DataAdapter($model), function (Type $type) use ($fieldlist) {
+        $primaryKeyName = $this->getPrimaryKeyName($resource);
+        $data_query = new DataQuery($resource, $primaryKeyName, $this->db, $this->parser);
+        $fieldlist = $this->schema->listTableColumns($resource);
+        $api->resourceType($resource, new DataAdapter($data_query), function (Type $type) use ($fieldlist, $primaryKeyName) {
             foreach($fieldlist as $field) {
-                if (!$field['primary']) {
-                    $type->attribute($field['name'])->writable()->filterable();
+                if (!($field->getName() == $primaryKeyName)) {
+                    $type->attribute($field->getName())->writable()->filterable();
                 }
             }
             $type->listable();
@@ -38,5 +37,15 @@ class JsonApiEntrypointTuner
             $type->updatable();
             $type->deletable();
         });
+    }
+
+    private function getPrimaryKeyName($resource)
+    {
+        $primaryKeyColumns = $this->schema->listTableDetails($resource)->getPrimaryKey()->getColumns();
+        if (count($primaryKeyColumns) == 1) {
+            return $primaryKeyColumns[0];
+        } else {
+            throw new \RuntimeException("Invalid resource $resource");
+        }
     }
 }
