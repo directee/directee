@@ -1,0 +1,6 @@
+{
+  "mod": 644,
+  "output": "directee.phar",
+  "stub": "pharstub.php",
+  "main": false
+}
