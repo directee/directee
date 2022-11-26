@@ -1,6 +1,5 @@
 vendor/
 data/
 directee-settings.php
-*.phar
 *.sqlite
 *.db

@@ -16,16 +16,18 @@ use Tobyz\JsonApiServer\Schema\Relationship;
  */
 class DataAdapter implements AdapterInterface
 {
-    private $dataQuery;
+    private Repository $repository;
+    private EntitySpec $entitySpec;
 
-    public function __construct(DataQuery $dataQuery)
+    public function __construct(Repository $repository, EntitySpec $specification)
     {
-        $this->dataQuery = $dataQuery;
+        $this->repository = $repository;
+        $this->entitySpec = $specification;
     }
 
     public function query()
     {
-        return new \ArrayObject(['query' => []],\ArrayObject::ARRAY_AS_PROPS+\ArrayObject::STD_PROP_LIST);
+        return new QueryOptions();
     }
 
     public function filterByIds($query, array $ids): void
@@ -36,13 +38,15 @@ class DataAdapter implements AdapterInterface
     public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void
     {
         $operator_substitute = [
-            '=' => '$eq',
-            '>' => '$gt',
-            '<' => '$lt',
-            '>=' => '$gte',
-            '<=' => '$lte',
+            '=' => 'eq',
+            '>' => 'gt',
+            '<' => 'lt',
+            '>=' => 'gte',
+            '<=' => 'lte',
         ];
-        $query->query['filter'][] = $operator_substitute[$operator] . '(' . $this->getAttributeName($attribute) . ", '"  . $value . "')";
+        $this->asQueryOptions($query)->addFilterExpression(
+            $operator_substitute[$operator] . '(' . $this->getAttributeName($attribute) . ", '"  . $value . "')"
+        );
     }
 
     public function filterByRelationship($query, Relationship $relationship, Closure $scope): void
@@ -52,13 +56,15 @@ class DataAdapter implements AdapterInterface
 
     public function filterByExpression($query, string $expression): void
     {
-        $query->query['filter'] = $expression;
+        $this->asQueryOptions($query)->addFilterExpression($expression);
     }
 
     public function sparseFieldset($query, $fields): void
     {
         if (is_string($fields)) {
-            $query->query['fields'] = explode(',',$fields);
+            foreach(explode(',',$fields) as $field) {
+                $this->asQueryOptions($query)->addField($field);
+            }
         }
     }
 
@@ -69,35 +75,33 @@ class DataAdapter implements AdapterInterface
 
     public function paginate($query, int $limit, int $offset): void
     {
-        $query->query['page'] = [
-            'offset' => $offset,
-            'limit' => $limit,
-        ];
+        $this->asQueryOptions($query)->pageLimit = $limit;
+        $this->asQueryOptions($query)->pageOffset = $offset;
     }
 
     public function find($query, string $id)
     {
-        return $this->dataQuery->find($id);
+        return $this->repository->find($this->entitySpec->resource, $id);
     }
 
     public function get($query): array
     {
-        return $this->dataQuery->query($query->query);
+        return $this->repository->query($this->entitySpec->resource, $this->asQueryOptions($query));
     }
 
     public function count($query): int
     {
-        return 0;
+        return $this->repository->count($this->entitySpec->resource, $this->asQueryOptions($query));
     }
 
     public function getId($model): string
     {
-        return $this->asModel($model)->getId();
+        return $this->asEntity($model)->getId();
     }
 
     public function getAttribute($model, Attribute $attribute)
     {
-        return $this->asModel($model)->getAttribute($this->getAttributeName($attribute));
+        return $this->asEntity($model)->getAttribute($this->getAttributeName($attribute));
     }
 
     public function getHasOne($model, HasOne $relationship, bool $linkageOnly, Context $context)
@@ -117,17 +121,17 @@ class DataAdapter implements AdapterInterface
 
     public function model()
     {
-        return $this->dataQuery->newDataItem();
+        return new Entity($this->entitySpec);
     }
 
     public function setId($model, string $id): void
     {
-        $this->asModel($model)->setId($id);
+        $this->asEntity($model)->setId($id);
     }
 
     public function setAttribute($model, Attribute $attribute, $value): void
     {
-        $this->asModel($model)->setAttribute($this->getAttributeName($attribute), $value);
+        $this->asEntity($model)->setAttribute($this->getAttributeName($attribute), $value);
     }
 
     public function setHasOne($model, HasOne $relationship, $related): void
@@ -137,7 +141,7 @@ class DataAdapter implements AdapterInterface
 
     public function save($model): void
     {
-        $this->asModel($model)->save();
+        $this->repository->save($this->asEntity($model));
     }
 
     public function saveHasMany($model, HasMany $relationship, array $related): void
@@ -147,7 +151,7 @@ class DataAdapter implements AdapterInterface
 
     public function delete($model): void
     {
-        $this->asModel($model)->delete();
+        $this->repository->delete($this->asEntity($model));
     }
 
     private function getAttributeName(Attribute $attribute): string
@@ -155,12 +159,21 @@ class DataAdapter implements AdapterInterface
         return $attribute->getProperty() ?: $attribute->getName();
     }
 
-    private function asModel($model): DataItem
+    private function asEntity($model): Entity
     {
-        if ($model instanceof DataItem) {
+        if ($model instanceof Entity) {
             return $model;
         } else {
-            throw new \RuntimeException('Invalid model instance');
+            throw new \RuntimeException('Invalid Entity instance');
+        }
+    }
+
+    private function asQueryOptions($query): QueryOptions
+    {
+        if ($query instanceof QueryOptions) {
+            return $query;
+        } else {
+            throw new \RuntimeException('Invalid QueryOptions instance');
         }
     }
 }

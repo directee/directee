@@ -10,18 +10,18 @@ use WellRESTed\Message\Stream;
 
 class FrontStub implements RequestHandlerInterface
 {
-    private $name;
+    private $text;
 
-    public function __construct($name)
+    public function __construct($text)
     {
-        $this->name = $name;
+        $this->text = $text;
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $response = (new Response(200))
-            ->withHeader('Content-type', 'text/plain')
-            ->withBody(new Stream($this->name));
+            ->withHeader('Content-type', 'text/html')
+            ->withBody(new Stream($this->text));
         return $response;
     }
 }

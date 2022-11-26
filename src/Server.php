@@ -2,73 +2,91 @@
 
 namespace Directee;
 
-use \Pimple\Container;
+use Pimple\Container;
 
 /**
  * Directee Server
  *
- * This is core container with these entries:
- * @property-read \WellRESTed\Server $json_api_server
+ * @property-read \WellRESTed\Server $jsonapi_server
  */
 class Server
 {
-    public static function run(string $work_dir)
+    public static function run(string $work_directory)
     {
-        $settings = include "$work_dir/directee-settings.php" ?? [ 'data-url' => 'sqlite://:memory:' ];
-        $server = new Self($settings);
-        $server->json_api_server->respond();
+        $server = new Self(self::uploadSettings($work_directory));
+        $server->jsonapi_server->respond();
     }
 
-    /** @var \Pimple\Container */
-    private $container;
+    public const PRODUCTION_MODE = 'production';
 
-    private const app_name = 'app_name';
-    private const jsonapi_server = 'json_api_server';
-    private const jsonapi_handler = 'jsonapi_handler';
-    private const jsonapi_tuner = 'jsonapi_tuner';
-    private const db_connection = 'db_connection';
-    private const front_stub = 'entrypoint_front_stub';
-    private const filter_lexer = 'filter_lexer';
-    private const filter_parser = 'filter_parser';
+    private Container $container;
+
+    private const APP_MODE = 'app_mode';
+    private const DB_CONNECTION = 'db_connection';
+    private const DATA_REPOSITORY = 'data_repository';
+    private const SCHEMA_REPOSITORY = 'schema_repository';
+    private const JSONAPI_SERVER = 'jsonapi_server';
+    private const ENTRYPOINT_FRONT_STUB = 'entrypoint_front_stub';
+    private const ENTRYPOINT_JSONAPI_DATA = 'entrypoint_jsonapi_data';
+    private const ENTRYPOINT_JSONAPI_SCHEMA = 'entrypoint_jsonapi_schema';
+
+    private const DIRECTEE_MOTTO = 'Directee is the common JSONAPI backend';
+    private const INFORMATION_SCHEMA = '/information_schema';
+
+    private const CONF_DATA_URL = 'data-url';
+    private const CONF_FRONT_STUB = 'front-stub';
+    private const CONF_CUSTOM_HEADERS = 'custom-headers';
+    private const CONF_WORK_DIRECTORY = 'work-directory';
+    private const CONF_APP_MODE = 'app-mode';
 
     private function __construct(array $settings)
     {
         $this->container = new Container([
-            self::app_name => 'Directee is the common JSONAPI backend',
-            self::db_connection => function() use ($settings) {
+            self::APP_MODE => $settings[self::CONF_APP_MODE],
+            self::DB_CONNECTION => function() use ($settings) {
                 $connectionParams = [
-                    'url' => $settings['data-url'],
+                    'url' => $settings[self::CONF_DATA_URL],
                 ];
                 return \Doctrine\DBAL\DriverManager::getConnection($connectionParams);
             },
-            self::filter_lexer => function() {
-                return new \Directee\FilterExpression\Lexer();
+            self::DATA_REPOSITORY => function($container) {
+                return new \Directee\DataAccess\DataRepository($container[self::DB_CONNECTION]);
             },
-            self::filter_parser => function($container) {
-                return new \Directee\FilterExpression\Parser($container[self::filter_lexer]);
+            self::SCHEMA_REPOSITORY => function($container) {
+                return new \Directee\DataAccess\SchemaRepository($container[self::DB_CONNECTION]);
             },
-            self::jsonapi_server => function() {
+            self::JSONAPI_SERVER => function() {
                 return new \WellRESTed\Server();
             },
-            self::jsonapi_tuner => function($container) {
-                return new \Directee\DataAccess\JsonApiEntrypointTuner($container[self::db_connection], $container[self::filter_parser]);
-            },
-            self::jsonapi_handler => function($container) {
-                return new \Directee\Entrypoint\JsonApi($container[self::jsonapi_tuner]);
-            },
-            self::front_stub => function($container) {
-                return new \Directee\Entrypoint\FrontStub($container[self::app_name]);
-            },
         ]);
-        $this->container->extend(self::jsonapi_server, function(\WellRESTed\Server $server, $container){
+
+        $container = $this->container;
+
+        $this->container[self::ENTRYPOINT_FRONT_STUB] = $this->container->protect(function() use ($settings) {
+            $text = $settings[self::CONF_FRONT_STUB];
+            return new \Directee\Entrypoint\FrontStub($text);
+        });
+        $this->container[self::ENTRYPOINT_JSONAPI_DATA] = $this->container->protect(function() use ($container) {
+            return new \Directee\Entrypoint\JsonApi($container[self::DATA_REPOSITORY], '', $container[self::APP_MODE]);
+        });
+        $this->container[self::ENTRYPOINT_JSONAPI_SCHEMA] = $this->container->protect(function() use ($container) {
+            return new \Directee\Entrypoint\JsonApi($container[self::SCHEMA_REPOSITORY], self::INFORMATION_SCHEMA, $container[self::APP_MODE]);
+        });
+
+        $this->container->extend(self::JSONAPI_SERVER, function(\WellRESTed\Server $server, $container) use ($settings) {
             $router = $server->createRouter();
             $router
-                ->register('GET', '/', $container[self::front_stub])
-                ->register('GET,POST', '/{resource}', $container[self::jsonapi_handler])
-                ->register('GET,POST', '/{resource}/', $container[self::jsonapi_handler])
-                ->register('GET,PATCH,DELETE', '/{resource}/{id}', $container[self::jsonapi_handler])
-                ->register('GET,PATCH,DELETE', '/{resource}/{id}/', $container[self::jsonapi_handler])
+                ->register('GET', '/', $container[self::ENTRYPOINT_FRONT_STUB])
+                ->register('GET', self::INFORMATION_SCHEMA .'/{resource}', $container[self::ENTRYPOINT_JSONAPI_SCHEMA])
+                ->register('GET', self::INFORMATION_SCHEMA . '/{resource}/', $container[self::ENTRYPOINT_JSONAPI_SCHEMA])
+                ->register('GET', self::INFORMATION_SCHEMA . '/{resource}/{id}', $container[self::ENTRYPOINT_JSONAPI_SCHEMA])
+                ->register('GET', self::INFORMATION_SCHEMA . '/{resource}/{id}/', $container[self::ENTRYPOINT_JSONAPI_SCHEMA])
+                ->register('GET,POST', '/{resource}', $container[self::ENTRYPOINT_JSONAPI_DATA])
+                ->register('GET,POST', '/{resource}/', $container[self::ENTRYPOINT_JSONAPI_DATA])
+                ->register('GET,PATCH,DELETE', '/{resource}/{id}', $container[self::ENTRYPOINT_JSONAPI_DATA])
+                ->register('GET,PATCH,DELETE', '/{resource}/{id}/', $container[self::ENTRYPOINT_JSONAPI_DATA])
             ;
+            $server->add(new \Directee\Middleware\CustomHeaders($settings[self::CONF_CUSTOM_HEADERS]));
             $server->add($router);
             return $server;
         });
@@ -88,4 +106,21 @@ class Server
 	{
 		return $this->get($name);
 	}
+
+    private static function uploadSettings(string $work_directory): array
+    {
+        $default_values = [
+            self::CONF_DATA_URL => 'sqlite://:memory:',
+            self::CONF_CUSTOM_HEADERS => [],
+            self::CONF_WORK_DIRECTORY => '',
+            self::CONF_FRONT_STUB => self::DIRECTEE_MOTTO,
+            self::CONF_APP_MODE => self::PRODUCTION_MODE,
+        ];
+        $from_global = \is_array($GLOBALS['directee-settings']) ? $GLOBALS['directee-settings'] : [];
+        $from_include = \file_exists("${work_directory}/directee-settings.php") ? include "${work_directory}/directee-settings.php" : [];
+        $from_config = \file_exists(__DIR__ . '../config/directee-settings.php') ? include __DIR__ . '../config/directee-settings.php' : [];
+        $result = \array_replace_recursive($default_values, $from_config, $from_include, $from_global);
+        $result[self::CONF_WORK_DIRECTORY] = $work_directory;
+        return $result;
+    }
 }
