@@ -52,11 +52,12 @@ final class EntitySpec
     public function tuneResourceType(Type $type): void
     {
         foreach($this->attributeNames as $field) {
-            $type->attribute($field)->writable()->filterable();
+            $type->attribute($field)->writable()->filterable()->sortable();
         }
         $type->listable();
         $type->creatable();
         $type->updatable();
         $type->deletable();
+        $type->limit(1000);
     }
 }

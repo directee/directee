@@ -3,21 +3,23 @@
 namespace Directee\DataAccess;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 
 class SchemaRepository implements Repository
 {
+    private AbstractSchemaManager $schema_manager;
     private array $entities = [];
     private array $tables = [];
 
     public function __construct(Connection $connection)
     {
-        $schema_manager = $connection->createSchemaManager();
-        $this->tables = $schema_manager->listTableNames();
+        $this->schema_manager = $connection->createSchemaManager();
+        $this->tables = $this->schema_manager->listTableNames();
         $this->entities['tables'] = EntitySpec::createFromSpec([
             'resource' => 'tables',
             'keyName' => 'id',
-            'attributeNames' => [ 'name', ],
+            'attributeNames' => [ 'name', 'columns'],
         ]);
     }
 
@@ -42,10 +44,7 @@ class SchemaRepository implements Repository
         $row = [];
         switch ($resource) {
             case 'tables':
-                $row = [
-                    'id' => \in_array($id, $this->tables) ? $id : null,
-                    'name' => \in_array($id, $this->tables) ? $id : null,
-                ];
+                $row = $this->getTableData($id);
                 break;
             default:
                 $row = [];
@@ -62,10 +61,7 @@ class SchemaRepository implements Repository
             case 'tables':
                 foreach($this->tables as $tab) {
                     $entity = $this->create($resource);
-                    $entity->fromArray([
-                        'id' => $tab,
-                        'name' => $tab,
-                    ]);
+                    $entity->fromArray($this->getTableData($tab));
                     $result[] = $entity;
                 }
                 break;
@@ -91,5 +87,39 @@ class SchemaRepository implements Repository
     public function delete(Entity $entity): void
     {
         throw new \BadMethodCallException(__METHOD__ . ' is not implemented');
+    }
+
+    private function getTableData(string $table): array
+    {
+        if (\in_array($table, $this->tables)) {
+            return [
+                'id' => $table,
+                'name' => $table,
+                'columns' => $this->getFields($table),
+            ];
+        } else {
+            return [
+                'id' => null,
+                'name' => null,
+                'columns' => [],
+            ];
+        }
+    }
+
+    private function getFields(string $table): array
+    {
+        $result = [];
+        $primaryKeyColumns = $this->schema_manager->listTableDetails($table)->getPrimaryKey()->getColumns();
+        foreach($this->schema_manager->listTableColumns($table) as $column) {
+            if (in_array($column->getName(), $primaryKeyColumns)) {
+                continue;
+            } else {
+                $result[] = [
+                    'name' => $column->getName(),
+                    'type' => $column->getType()->getName(),
+                ];
+            }
+        }
+        return $result;
     }
 }

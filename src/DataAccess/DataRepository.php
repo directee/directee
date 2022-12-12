@@ -7,23 +7,30 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Directee\FilterExpression\Parser;
 use Directee\FilterExpression\Lexer;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 
 class DataRepository implements Repository
 {
     private Connection $connection;
     private AbstractSchemaManager $schema_manager;
     private array $entities = [];
+    private array $tableNames = [];
 
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
         $this->schema_manager = $connection->createSchemaManager();
+        $this->tableNames = $this->schema_manager->listTableNames();
     }
 
     public function spec(string $resource): EntitySpec
     {
         if (! \array_key_exists($resource, $this->entities)) {
-            $this->entities[$resource] = $this->createEntitySpec($resource);
+            if (\in_array($resource, $this->tableNames)) {
+                $this->entities[$resource] = $this->createEntitySpec($resource);
+            } else {
+                throw new ResourceNotFoundException($resource);
+            }
         }
         return $this->entities[$resource];
     }
@@ -81,16 +88,14 @@ class DataRepository implements Repository
         if ($entity->hasId()) {
             $query = $this->connection->createQueryBuilder()->update($entity->resource());
             $query->where($entity->keyName() . ' = :id')->setParameter('id', $updated_id);
-            foreach($entity->asArray() as $nm => $vl) {
-                $prm = ":$nm";
-                $query->set($nm,$prm)->setParameter($prm,$vl);
+            foreach($entity->attributes() as $nm => $vl) {
+                $query->set($nm,":$nm")->setParameter($nm,$vl);
             }
             $query->executeStatement();
         } else {
             $query = $this->connection->createQueryBuilder()->insert($entity->resource());
-            foreach($entity->asArray() as $nm => $vl) {
-                $prm = ":$nm";
-                $query->setValue($nm,$prm)->setParameter($prm,$vl);
+            foreach($entity->attributes() as $nm => $vl) {
+                $query->setValue($nm,":$nm")->setParameter($nm,$vl);
             }
             $resu = $query->executeQuery()->fetchAllAssociative();
             $updated_id = $this->connection->lastInsertId($entity->resource());

@@ -19,13 +19,12 @@ class DetailedInfo extends RuntimeException implements ErrorProviderInterface
     {
         $detailed = new Error(
             new Error\Title('Detailed Error Info'),
-            new Error\Status($this->getJsonApiStatus()),
-            new Error\Detail($this->failure->getMessage())
+            new Error\Detail((string) $this->failure->getMessage() . ' [' . $this->failure->getFile() . '::' . $this->failure->getLine() . ']'),
         );
         if ($this->failure instanceof ErrorProviderInterface) {
-            return \array_merge($this->failure->getJsonApiErrors(), $detailed);
+            return \array_merge($this->failure->getJsonApiErrors(), [$detailed]);
         } else {
-            return $detailed;
+            return [ $detailed ];
         }
     }
 

@@ -32,11 +32,11 @@ http://your-server/TABLE/?filter=and(eq(lastName,'Smith'),gte(modified,'2021-01-
 
 ### Use composer
 
-Grab code by composer and point your web server root to folder `public`
+Grab the code by composer and point your web server root to the folder `public`
 
 ### Use phar
 
-Put the file `directee.phar` on your web server root folder and create file `index.php`
+Put the file `directee.phar` on your web server root folder and create the file `index.php`
 ```php
 <?php
 require "directee.phar";
@@ -85,6 +85,8 @@ Specify additional server http headers. Default value: empty.
 ```php
     'custom-headers' => [
         'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => '*',
+        'Access-Control-Allow-Headers' => '*',
     ],
 ```
 
@@ -134,6 +136,10 @@ box compile
 ```
 
 ## Changelog
+
+### 0.0.3 — 2022-12-12
+#### Fixed
+- many fixes after field testing
 
 ### 0.0.2 — 2022-11-26
 #### Added

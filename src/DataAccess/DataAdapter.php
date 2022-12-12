@@ -70,7 +70,7 @@ class DataAdapter implements AdapterInterface
 
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
-        throw new \BadMethodCallException(__METHOD__ . ' is not implemented');
+        $this->asQueryOptions($query)->addSort($this->getAttributeName($attribute), $direction);
     }
 
     public function paginate($query, int $limit, int $offset): void
