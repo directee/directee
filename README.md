@@ -1,8 +1,6 @@
-# Directee
+# Directee JSON:API Backend
 
-Directee is the common JSONAPI backend.
-
-The backend is installed on top of any database (MySQL/MariaDB, PostgreSQL, MS SQL, Sqlite) and allows you to query and modify records in all tables in JSONAPI-way.
+The backend is installed on top of any database (MySQL/MariaDB, PostgreSQL, MS SQL, Sqlite) and allows you to query and modify records in all tables in [JSON:API](https://jsonapi.org/)-way.
 
 Get some records from table TABLE
 ```
@@ -152,4 +150,4 @@ box compile
 
 ## License
 
-MIT
+AGPL-3.0
