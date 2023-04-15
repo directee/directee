@@ -1,6 +1,6 @@
 {
   "chmod": "644",
-  "output": "directee.phar",
+  "output": "directee-backend.phar",
   "stub": "pharstub.php",
   "main": false
 }

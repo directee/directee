@@ -1,7 +1,7 @@
 {
     "name": "directee/directee",
     "type": "project",
-    "description": "Directee is the common JSONAPI backend",
+    "description": "Directee JSON:API backend",
     "config": {
         "platform": {
             "php": "7.4"
@@ -21,17 +21,25 @@
       {
           "type": "vcs",
           "url": "https://github.com/directee/json-api-server"
-      }
-    ],
+      },
+      {
+        "type": "vcs",
+        "url": "https://github.com/directee/interfaces"
+    }
+  ],
 
    "require": {
-        "wellrested/wellrested": "^5.1",
+        "directee/interfaces": "@dev",
         "doctrine/dbal": "^3.4",
         "doctrine/lexer": "^1.2",
-        "pimple/pimple": "^3.0",
+        "filp/whoops": "^2.15",
+        "league/container": "^4.2",
+        "monolog/monolog": "^2.9",
+        "psr/container": "^2.0",
         "psr/event-dispatcher": "^1.0",
         "psr/http-client": "^1.0",
         "psr/log": "*",
-        "tobyz/json-api-server": "dev-master"
+        "tobyz/json-api-server": "dev-master",
+        "wellrested/wellrested": "^5.1"
     }
 }

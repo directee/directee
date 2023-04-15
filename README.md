@@ -34,10 +34,10 @@ Grab the code by composer and point your web server root to the folder `public`
 
 ### Use phar
 
-Put the file `directee.phar` on your web server root folder and create the file `index.php`
+Put the file `directee-backend.phar` on your web server root folder and create the file `index.php`
 ```php
 <?php
-require "directee.phar";
+require "directee-backend.phar";
 ```
 
 ## Configuration
@@ -56,7 +56,7 @@ return [
 $GLOBALS['directee-settings'] = [
   'data-url' => 'sqlite://path/to/DB',
 ];
-require "directee.phar";
+require "directee-backend.phar";
 ```
 
 ### data-url
@@ -134,6 +134,11 @@ box compile
 ```
 
 ## Changelog
+
+### 0.0.4 — 2023-04-15
+#### Changed
+- adopt Directee\Interfaces
+- change the license to AGPL-3.0
 
 ### 0.0.3 — 2022-12-12
 #### Fixed

@@ -2,4 +2,4 @@
 
 require_once '../vendor/autoload.php';
 
-\Directee\Server::run(__DIR__);
+(new \Directee\WellBackend\Main(__DIR__))->run();
